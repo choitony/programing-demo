@@ -4,6 +4,7 @@ import demo.machine.task.Task;
 
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class SimpleTaskExecutor implements TaskExecutor {
@@ -70,7 +71,10 @@ public class SimpleTaskExecutor implements TaskExecutor {
 
                 Task task = null;
                 try {
-                    task = tasks.take();
+                    task = tasks.poll(100, TimeUnit.MILLISECONDS);
+                    if(task == null){
+                        continue;
+                    }
                     try {
                         do {
                             Task[] subTasks = task.execute();
@@ -80,6 +84,10 @@ public class SimpleTaskExecutor implements TaskExecutor {
                             // 如果返回其他，表示有子任务，执行子任务，然后挂起当前任务。
                             if (subTasks.length == 0) {
                                 task.complete();
+                                if(task.isRollBack()){
+                                    task.getParent().setRollBack();
+                                    task.getParent().rollbackAllChild();
+                                }
                                 if (task.hasParent() && task.getParent().canRun()) {
                                     tasks.add(task.getParent());
                                 }
@@ -92,6 +100,7 @@ public class SimpleTaskExecutor implements TaskExecutor {
                             }
                         } while (!task.isDone() && !task.isSuspended());
                     } catch (Exception e) {
+                        System.out.println("roll back task = " + task.getID() + " with reason = [ " + e.getMessage() + " ]");
                         // 任务只关注自己执行的情况，不需要关注回滚的触发，回滚的触发由引擎捕获任务的执行异常来处理。
                         if (task.isFailed()) {
                             task.setRollBack();

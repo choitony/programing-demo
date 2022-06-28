@@ -66,11 +66,17 @@ public class TestV2 {
             }
             return Flow.HAS_MORE_FLOW;
         }
+
+        @Override
+        protected Flow rollbackFromState(Stage_V2 stage_v2) throws Exception {
+            return null;
+        }
     }
 
     public static void main(String[] args) {
         SimpleTaskExecutor executor = new SimpleTaskExecutor();
         executor.submit(new StatemachineTaskV2());
+        executor.shutDownGracefully();
     }
 
 }

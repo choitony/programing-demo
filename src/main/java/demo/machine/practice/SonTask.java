@@ -34,6 +34,11 @@ public class SonTask extends StatemachineTask<SON_STAGE> {
         }
         return Flow.HAS_MORE_FLOW;
     }
+
+    @Override
+    protected Flow rollbackFromState(SON_STAGE son_stage) throws Exception {
+        return null;
+    }
 }
 
 enum SON_STAGE {

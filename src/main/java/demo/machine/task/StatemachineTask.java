@@ -14,6 +14,7 @@ public abstract class StatemachineTask<TState> extends Task {
 
     @Override
     public StatemachineTask[] execute() throws Exception {
+
         if (isRunnable()) {
             lifecycle = Lifecycle.RUNNING;
         }
@@ -24,7 +25,12 @@ public abstract class StatemachineTask<TState> extends Task {
 
         TState currentState = getCurrentState();
         try {
-            stateFlow = executeFromState(currentState);
+            stateFlow = null;
+            if (isRollBack()) {
+                stateFlow = rollbackFromState(currentState);
+            } else {
+                stateFlow = executeFromState(currentState);
+            }
         } catch (Exception e) {
             lifecycle = Lifecycle.FAILED;
             throw e;
@@ -44,9 +50,8 @@ public abstract class StatemachineTask<TState> extends Task {
         return subTasks.toArray(new StatemachineTask[subTasks.size()]);
     }
 
-    @Override
     public void rollback() {
-
+        // see executeFromState
     }
 
     public TState getCurrentState() {
@@ -54,6 +59,8 @@ public abstract class StatemachineTask<TState> extends Task {
     }
 
     protected abstract Flow executeFromState(TState state) throws Exception;
+
+    protected abstract Flow rollbackFromState(TState state) throws Exception;
 
     public boolean hasMoreFlow() {
         return stateFlow == Flow.HAS_MORE_FLOW;

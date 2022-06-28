@@ -16,9 +16,14 @@ public abstract class Task {
         RUNNING,
         SUSPENDED,
         DONE,
-        FAILED,
-        RollBack;
+        FAILED
     }
+
+    public Task(Task parent){
+        this.parent = parent;
+    }
+
+    volatile boolean rollback = false;
 
     protected Lifecycle lifecycle = Lifecycle.RUNNABLE;
 
@@ -37,7 +42,7 @@ public abstract class Task {
         ID = id;
     }
 
-    public long getID(){
+    public long getID() {
         return ID;
     }
 
@@ -70,8 +75,12 @@ public abstract class Task {
         return lifecycle == Lifecycle.FAILED;
     }
 
+    public boolean isRollBack() {
+        return rollback;
+    }
+
     // 这里没必要限制为StatemachineTask,后续在设计
-    public void addChildrenTask(StatemachineTask task) {
+    public void addChildrenTask(Task task) {
         subTasks.add(task);
     }
 
@@ -88,7 +97,7 @@ public abstract class Task {
     }
 
     public void complete() {
-        if (lifecycle == Lifecycle.RUNNING) {
+        if (lifecycle == Lifecycle.RUNNING || lifecycle == Lifecycle.FAILED) {
             lifecycle = Lifecycle.DONE;
         }
 
@@ -110,6 +119,18 @@ public abstract class Task {
     }
 
     public void setRollBack() {
-        lifecycle = Lifecycle.RollBack;
+        rollback = true;
+    }
+
+    public void rollbackAllChildren(){
+        for(Task son : subTasks){
+            if(son.isRollBack() && son.isDone()){
+                continue;
+            }
+
+            if(son.abort()){
+
+            }
+        }
     }
 }

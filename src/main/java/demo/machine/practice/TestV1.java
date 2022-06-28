@@ -67,6 +67,16 @@ public class TestV1 {
             }
             return Flow.HAS_MORE_FLOW;
         }
+
+        @Override
+        protected Flow rollbackFromState(StateV1 stateV1) throws Exception {
+            return null;
+        }
+
+        @Override
+        public void rollback() {
+
+        }
     }
 
     public static void main(String[] args) {
