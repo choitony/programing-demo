@@ -1,0 +1,8 @@
+/.idea/
+*target/
+*.iml
+*.iws
+*.iml
+*.ipr
+.project
+dependency-reduced-pom.xml
