@@ -6,39 +6,51 @@ import demo.machine.task.StatemachineTask;
 /**
  * 测试用的子任务
  */
-public class SonTask extends StatemachineTask<SON_STAGE> {
+public class SonTask extends StatemachineTask<DefaultStatemachineState> {
 
     String name;
 
     public SonTask(String name, StatemachineTask parent) {
-        this(SON_STAGE.INITIAL, parent);
+        this(DefaultStatemachineState.STAGE_INITIAL, parent);
         this.name = name;
     }
 
-    public SonTask(SON_STAGE initialState, StatemachineTask parent) {
+    public SonTask(DefaultStatemachineState initialState, StatemachineTask parent) {
         super(initialState, parent);
     }
 
     @Override
-    protected Flow executeFromState(SON_STAGE son_stage) throws Exception {
+    public DefaultStatemachineState getState(int id) {
+        return DefaultStatemachineState.forCode(id);
+    }
+
+    @Override
+    public int getStateCode(DefaultStatemachineState defaultStatemachineState) {
+        return defaultStatemachineState.getCode();
+    }
+
+    @Override
+    protected Flow executeFromState(DefaultStatemachineState son_stage) {
         switch (son_stage) {
-            case INITIAL:
+            case STAGE_INITIAL:
                 System.out.println("son task initial");
-                setNextState(SON_STAGE.DONE);
+                setNextState(DefaultStatemachineState.STAGE_DONE);
                 break;
-            case DONE:
+            case STAGE_DONE:
                 System.out.println("son task done");
                 return Flow.HAS_NO_FLOW;
             default:
-                throw new Exception("invalid state");
+                ;//throw new Exception("invalid state");
         }
         return Flow.HAS_MORE_FLOW;
     }
 
     @Override
-    protected Flow rollbackFromState(SON_STAGE son_stage) throws Exception {
+    protected Flow rollbackFromState(DefaultStatemachineState defaultStatemachineState) throws Exception {
         return null;
     }
+
+
 }
 
 enum SON_STAGE {

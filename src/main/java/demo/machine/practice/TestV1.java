@@ -5,6 +5,8 @@ import demo.machine.executor.SimpleTaskExecutor;
 import demo.machine.task.Flow;
 import demo.machine.task.StatemachineTask;
 
+import static demo.machine.practice.DefaultStatemachineState.*;
+
 /**
  * for testing the statemachine:
  * V1:
@@ -12,70 +14,76 @@ import demo.machine.task.StatemachineTask;
  */
 public class TestV1 {
 
-    enum StateV1 {
-        STAGE_INITIAL,
-        STAGE_V1,
-        STAGE_V2,
-        STAGE_V3,
-        STAGE_DONE;
-    }
-
     /**
      * 每个阶段加1，加到5结束，每个阶段sleep 1s.
      */
-    static class StateMachineTaskV1 extends StatemachineTask<StateV1> {
+    static class StateMachineTaskV1 extends StatemachineTask<DefaultStatemachineState> {
 
         public StateMachineTaskV1() {
-            this(StateV1.STAGE_INITIAL);
+            this(DefaultStatemachineState.STAGE_INITIAL);
         }
 
-        public StateMachineTaskV1(StateV1 stateV1) {
+        public StateMachineTaskV1(DefaultStatemachineState stateV1) {
             super(stateV1, null);
         }
 
         private int value = 0;
 
-        private void action() throws InterruptedException {
+        private void action() {
             value++;
-            Thread.sleep(1000);
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             System.out.println(value);
         }
 
         @Override
-        protected Flow executeFromState(StateV1 stateV1) throws Exception {
-            switch (stateV1) {
+        protected Flow executeFromState(DefaultStatemachineState state) {
+            switch (state) {
                 case STAGE_INITIAL:
                     action();
-                    setNextState(StateV1.STAGE_V1);
+                    setNextState(STAGE_1);
                     break;
-                case STAGE_V1:
+                case STAGE_1:
                     action();
-                    setNextState(StateV1.STAGE_V2);
+                    setNextState(STAGE_2);
                     break;
-                case STAGE_V2:
+                case STAGE_2:
                     action();
-                    setNextState(StateV1.STAGE_V3);
+                    setNextState(STAGE_3);
                     break;
-                case STAGE_V3:
+                case STAGE_3:
                     action();
-                    setNextState(StateV1.STAGE_DONE);
+                    setNextState(STAGE_DONE);
                     break;
                 case STAGE_DONE:
                     return Flow.HAS_NO_FLOW;
                 default:
-                    throw new Exception("invalid state");
+                    ;
             }
             return Flow.HAS_MORE_FLOW;
         }
 
         @Override
-        protected Flow rollbackFromState(StateV1 stateV1) throws Exception {
+        public void rollback() {
+
+        }
+
+        @Override
+        public DefaultStatemachineState getState(int id) {
+            return DefaultStatemachineState.forCode(id);
+        }
+
+        @Override
+        protected Flow rollbackFromState(DefaultStatemachineState state) throws Exception {
             return null;
         }
 
         @Override
-        public void rollback() {
-
+        public int getStateCode(DefaultStatemachineState state) {
+            return state.getCode();
         }
     }
 
@@ -90,5 +98,6 @@ public class TestV1 {
         }
 
         executor.submit(new StateMachineTaskV1());
+        executor.shutDownGracefully();
     }
 }

@@ -86,7 +86,7 @@ public class SimpleTaskExecutor implements TaskExecutor {
                                 task.complete();
                                 if(task.isRollBack()){
                                     task.getParent().setRollBack();
-                                    task.getParent().rollbackAllChild();
+                                  //  task.getParent().rollbackAllChild();
                                 }
                                 if (task.hasParent() && task.getParent().canRun()) {
                                     tasks.add(task.getParent());

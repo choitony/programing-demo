@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class TestV4 {
 
-    enum State_V4 {
+    /*enum State_V4 {
         INITIAL,
         ADD_1,
         MULTI_2,
@@ -148,5 +148,5 @@ public class TestV4 {
         SimpleTaskExecutor ste = new SimpleTaskExecutor();
         ste.submit(new demo.machine.practice.TestV4.RollBackTask());
         ste.shutDownGracefully();
-    }
+    }*/
 }

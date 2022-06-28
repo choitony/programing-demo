@@ -121,16 +121,4 @@ public abstract class Task {
     public void setRollBack() {
         rollback = true;
     }
-
-    public void rollbackAllChildren(){
-        for(Task son : subTasks){
-            if(son.isRollBack() && son.isDone()){
-                continue;
-            }
-
-            if(son.abort()){
-
-            }
-        }
-    }
 }

@@ -1,12 +1,18 @@
 package demo.machine.task;
 
+import java.lang.reflect.Array;
+import java.util.Arrays;
+
 public abstract class StatemachineTask<TState> extends Task {
 
-    private TState currentState;
-
+    private int[] statemachineStates;
+    private int currentStateIndex;
 
     public StatemachineTask(TState initialState, Task parent) {
-        currentState = initialState;
+        super(parent);
+        statemachineStates = new int[1];
+        currentStateIndex = 0;
+        statemachineStates[0] = getStateCode(initialState);
         this.parent = parent;
     }
 
@@ -55,10 +61,14 @@ public abstract class StatemachineTask<TState> extends Task {
     }
 
     public TState getCurrentState() {
-        return currentState;
+        return getState(statemachineStates[currentStateIndex]);
     }
 
-    protected abstract Flow executeFromState(TState state) throws Exception;
+    public abstract TState getState(int id);
+
+    public abstract int getStateCode(TState state);
+
+    protected abstract Flow executeFromState(TState state);
 
     protected abstract Flow rollbackFromState(TState state) throws Exception;
 
@@ -67,6 +77,8 @@ public abstract class StatemachineTask<TState> extends Task {
     }
 
     public void setNextState(TState tState) {
-        currentState = tState;
+        statemachineStates = Arrays.copyOf(statemachineStates, statemachineStates.length + 1);
+        statemachineStates[statemachineStates.length - 1] = getStateCode(tState);
+        currentStateIndex++;
     }
 }

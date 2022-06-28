@@ -7,6 +7,14 @@ public class TestTaskMachineExecutorLifecycle {
 
     class SleepTask extends Task {
 
+        public SleepTask(){
+            this(null);
+        }
+
+        public SleepTask(Task parent) {
+            super(parent);
+        }
+
         @Override
         public Task[] execute() throws Exception {
             this.lifecycle = Lifecycle.RUNNING;
