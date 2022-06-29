@@ -72,6 +72,11 @@ public class TestV1 {
         }
 
         @Override
+        public boolean canRollback() {
+            return false;
+        }
+
+        @Override
         public DefaultStatemachineState getState(int id) {
             return DefaultStatemachineState.forCode(id);
         }

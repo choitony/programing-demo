@@ -6,8 +6,11 @@ import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Logger;
 
 public class SimpleTaskExecutor implements TaskExecutor {
+
+    Logger logger = Logger.getLogger(SimpleTaskExecutor.class.getName());
 
     private final BlockingDeque<Task> tasks = new LinkedBlockingDeque<>();
 
@@ -34,7 +37,10 @@ public class SimpleTaskExecutor implements TaskExecutor {
     @Override
     public long submit(Task task) {
         tasks.add(task);
-        task.setID(taskId.incrementAndGet());
+        if (task.getID() == 0) {
+            task.setID(taskId.incrementAndGet());
+            task.setExecutor(this);
+        }
         return task.getID();
     }
 
@@ -72,40 +78,34 @@ public class SimpleTaskExecutor implements TaskExecutor {
                 Task task = null;
                 try {
                     task = tasks.poll(100, TimeUnit.MILLISECONDS);
-                    if(task == null){
+                    if (task == null) {
                         continue;
                     }
                     try {
-                        do {
-                            Task[] subTasks = task.execute();
-
-                            // 如果返回自己,表示这一阶段完成，需要继续执行。
-                            // 如果返回空，表示整个任务完成。需要看下其是否有父任务，如果有需要判断是否需要唤醒父任务。
-                            // 如果返回其他，表示有子任务，执行子任务，然后挂起当前任务。
-                            if (subTasks.length == 0) {
-                                task.complete();
-                                if(task.isRollBack()){
-                                    task.getParent().setRollBack();
-                                  //  task.getParent().rollbackAllChild();
-                                }
-                                if (task.hasParent() && task.getParent().canRun()) {
-                                    tasks.add(task.getParent());
-                                }
-                            } else if (subTasks.length == 1 && subTasks[0] == task) {
-                                // continue in next loop;
-                            } else {
-                                for (Task subtask : subTasks) {
-                                    tasks.add(subtask);
-                                }
-                            }
-                        } while (!task.isDone() && !task.isSuspended());
-                    } catch (Exception e) {
-                        System.out.println("roll back task = " + task.getID() + " with reason = [ " + e.getMessage() + " ]");
-                        // 任务只关注自己执行的情况，不需要关注回滚的触发，回滚的触发由引擎捕获任务的执行异常来处理。
-                        if (task.isFailed()) {
-                            task.setRollBack();
-                            tasks.add(task);
+                        if (task.isRollBack()) {
+                            task.rollback();
+                        } else {
+                            task.execute();
                         }
+
+                        if (task.isRollBack()) {
+                            makeFinished(task);
+                        }
+
+                        if (task.isFailed()) {
+                            if (task.canRollback()) {
+                                task.setRollBack();
+                                tasks.add(task);
+                            }
+                        }
+
+                        if (task.isDone()) {
+                            makeFinished(task);
+                        }
+
+                    } catch (Exception e) {
+                        // TODO 处理异常。
+                        e.printStackTrace();
                     }
                 } catch (InterruptedException e) {
                     e.printStackTrace();
@@ -115,5 +115,30 @@ public class SimpleTaskExecutor implements TaskExecutor {
         }
     }
 
+    /**
+     * 设置这个task为完成状态，并且告知用户;
+     * 1、成功
+     * 2、失败
+     * 2.1 执行失败
+     * 2.2 回滚失败
+     *
+     * @param task
+     */
+    private void makeFinished(Task task) {
+        boolean isSuccessful = true;
+        String failedMessage = null;
+        if (task.isFailed()) {
+            isSuccessful = false;
+            failedMessage = task.getFailedException().getMessage();
+        }
+
+        if (isSuccessful)
+            logger.info("task = " + task.getID() + (isSuccessful ? " done." : (" failed, cause = " + failedMessage)));
+        else
+            logger.info("task = " + task.getID() + (isSuccessful ? " done." : (" failed, cause = " + failedMessage)));
+
+        // TODO notify the submit caller;
+
+    }
 
 }

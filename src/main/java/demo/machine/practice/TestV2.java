@@ -80,6 +80,11 @@ public class TestV2 {
         protected Flow rollbackFromState(DefaultStatemachineState DefaultStatemachineState) throws Exception {
             return null;
         }
+
+        @Override
+        public boolean canRollback() {
+            return false;
+        }
     }
 
     public static void main(String[] args) {

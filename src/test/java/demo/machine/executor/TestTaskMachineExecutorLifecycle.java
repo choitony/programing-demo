@@ -16,16 +16,20 @@ public class TestTaskMachineExecutorLifecycle {
         }
 
         @Override
-        public Task[] execute() throws Exception {
+        public void execute() throws Exception {
             this.lifecycle = Lifecycle.RUNNING;
             Thread.sleep(1000l);
             System.out.println("Task - " + getID() + " sleep task done");
-            return new Task[0];
         }
 
         @Override
         public void rollback() {
 
+        }
+
+        @Override
+        public boolean canRollback() {
+            return false;
         }
     }
 

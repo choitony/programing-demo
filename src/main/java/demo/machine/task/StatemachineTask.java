@@ -2,8 +2,11 @@ package demo.machine.task;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
+import java.util.logging.Logger;
 
 public abstract class StatemachineTask<TState> extends Task {
+
+    Logger logger = Logger.getLogger(StatemachineTask.class.getName());
 
     private int[] statemachineStates;
     private int currentStateIndex;
@@ -16,44 +19,45 @@ public abstract class StatemachineTask<TState> extends Task {
         this.parent = parent;
     }
 
-    Flow stateFlow = Flow.HAS_MORE_FLOW;
-
     @Override
-    public StatemachineTask[] execute() throws Exception {
+    public void execute() {
 
-        if (isRunnable()) {
+        if (isSuspended()) {
+            boolean ret = resume();
+            if (!ret) {
+                return;
+            }
+        }
+
+        if(isRunnable()){
             lifecycle = Lifecycle.RUNNING;
         }
 
-        if (isSuspended()) {
-            resume();
-        }
+        statemachineExecute();
+        complete();
+    }
 
-        TState currentState = getCurrentState();
-        try {
-            stateFlow = null;
-            if (isRollBack()) {
-                stateFlow = rollbackFromState(currentState);
-            } else {
-                stateFlow = executeFromState(currentState);
+    public void statemachineExecute() {
+        do {
+            TState state = getCurrentState();
+            Flow flow = executeFromState(state);
+
+            if (isFailed()) {
+                return;
             }
-        } catch (Exception e) {
-            lifecycle = Lifecycle.FAILED;
-            throw e;
-        }
 
-        if (!hasMoreFlow()) {
-            complete();
-            return new StatemachineTask[]{};
-        }
+            if (hasChildren()) {
+                suspendAndSubmitChildren();
+            }
 
-        if (subTasks.isEmpty()) {
-            return new StatemachineTask[]{this};
-        }
+            if (!hasMoreFlow(flow)) {
+                return;
+            }
+        } while (!(isDone() || isFailed() || isSuspended()));
+    }
 
-        suspend(subTasks.size());
-
-        return subTasks.toArray(new StatemachineTask[subTasks.size()]);
+    public boolean hasChildren() {
+        return subTasks != null && subTasks.size() > 0;
     }
 
     public void rollback() {
@@ -72,8 +76,8 @@ public abstract class StatemachineTask<TState> extends Task {
 
     protected abstract Flow rollbackFromState(TState state) throws Exception;
 
-    public boolean hasMoreFlow() {
-        return stateFlow == Flow.HAS_MORE_FLOW;
+    public boolean hasMoreFlow(Flow flow) {
+        return flow == Flow.HAS_MORE_FLOW;
     }
 
     public void setNextState(TState tState) {

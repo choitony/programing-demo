@@ -29,15 +29,22 @@ public class SonTask extends StatemachineTask<DefaultStatemachineState> {
         return defaultStatemachineState.getCode();
     }
 
+    private void action(){
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     protected Flow executeFromState(DefaultStatemachineState son_stage) {
         switch (son_stage) {
             case STAGE_INITIAL:
-                System.out.println("son task initial");
+                action();
                 setNextState(DefaultStatemachineState.STAGE_DONE);
                 break;
             case STAGE_DONE:
-                System.out.println("son task done");
                 return Flow.HAS_NO_FLOW;
             default:
                 ;//throw new Exception("invalid state");
@@ -51,6 +58,10 @@ public class SonTask extends StatemachineTask<DefaultStatemachineState> {
     }
 
 
+    @Override
+    public boolean canRollback() {
+        return false;
+    }
 }
 
 enum SON_STAGE {

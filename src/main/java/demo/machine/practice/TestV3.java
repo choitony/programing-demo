@@ -10,7 +10,6 @@ import demo.machine.task.StatemachineTask;
  */
 public class TestV3 {
 
-
     static class RollBackTask extends StatemachineTask<DefaultStatemachineState> {
 
         int value = 2;
@@ -50,7 +49,7 @@ public class TestV3 {
                     break;
                 case STAGE_3:
                     if (value == 6)
-                       ;// throw new IllegalAccessException("task = " + getID() + " ADD_2 failed, please rollback, current value = " + value);
+                       ;
                     value += 2;
                     setNextState(DefaultStatemachineState.STAGE_DONE);
                     break;
@@ -89,6 +88,11 @@ public class TestV3 {
                     throw new IllegalAccessException("invalid state" + DefaultStatemachineState);
             }
             return Flow.HAS_MORE_FLOW;
+        }
+
+        @Override
+        public boolean canRollback() {
+            return false;
         }
     }
 
