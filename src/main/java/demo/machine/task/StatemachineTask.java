@@ -1,6 +1,5 @@
 package demo.machine.task;
 
-import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.logging.Logger;
 
@@ -29,7 +28,7 @@ public abstract class StatemachineTask<TState> extends Task {
             }
         }
 
-        if(isRunnable()){
+        if (isRunnable()) {
             lifecycle = Lifecycle.RUNNING;
         }
 
@@ -61,7 +60,37 @@ public abstract class StatemachineTask<TState> extends Task {
     }
 
     public void rollback() {
-        // see executeFromState
+        if (isSuspended()) {
+            boolean ret = rollbackResume();
+            if (!ret) {
+                return;
+            }
+        }
+
+        if(isRunnable()){
+            lifecycle = Lifecycle.RUNNING;
+        }
+
+        statemachineRollback();
+
+        complete();
+    }
+
+    void statemachineRollback() {
+        do{
+            TState state = getCurrentState();
+            Flow flow = rollbackFromState(state);
+            if(isRollbackFailed()){
+                return;
+            }
+            if(!hasMoreFlow(flow)){
+                lifecycle = Lifecycle.FINISHED;
+                return;
+            }
+            if(hasChildren()){
+                suspendAndSubmitChildren();
+            }
+        }while(!(isRollbackFailed() || isRollbackDONE() || isSuspended()));
     }
 
     public TState getCurrentState() {
@@ -74,7 +103,7 @@ public abstract class StatemachineTask<TState> extends Task {
 
     protected abstract Flow executeFromState(TState state);
 
-    protected abstract Flow rollbackFromState(TState state) throws Exception;
+    protected abstract Flow rollbackFromState(TState state);
 
     public boolean hasMoreFlow(Flow flow) {
         return flow == Flow.HAS_MORE_FLOW;
@@ -84,5 +113,10 @@ public abstract class StatemachineTask<TState> extends Task {
         statemachineStates = Arrays.copyOf(statemachineStates, statemachineStates.length + 1);
         statemachineStates[statemachineStates.length - 1] = getStateCode(tState);
         currentStateIndex++;
+    }
+
+    public void rollbackState() {
+        currentStateIndex--;
+        statemachineStates = Arrays.copyOf(statemachineStates, statemachineStates.length - 1);
     }
 }

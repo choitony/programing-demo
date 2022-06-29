@@ -89,25 +89,30 @@ public class SimpleTaskExecutor implements TaskExecutor {
                         }
 
                         if (task.isRollBack()) {
-                            makeFinished(task);
+                            makeRollbackFinished(task);
+                            continue;
                         }
 
                         if (task.isFailed()) {
                             if (task.canRollback()) {
                                 task.setRollBack();
                                 tasks.add(task);
+                                logger.warning("task : " + task.getID() + " resubmit for rollback");
                             }
+                            continue;
                         }
 
                         if (task.isDone()) {
                             makeFinished(task);
+                            continue;
                         }
 
                     } catch (Exception e) {
-                        // TODO 处理异常。
+                        // TODO 任务运行故障
                         e.printStackTrace();
                     }
                 } catch (InterruptedException e) {
+                    // TODO 执行引擎故障
                     e.printStackTrace();
                 }
             }
@@ -139,6 +144,23 @@ public class SimpleTaskExecutor implements TaskExecutor {
 
         // TODO notify the submit caller;
 
+    }
+
+    private void makeRollbackFinished(Task task) {
+        boolean isSuccessful = true;
+        String rollbackfailedMessage = null;
+        if (task.isRollbackFailed()) {
+            isSuccessful = false;
+            rollbackfailedMessage = task.getFailedException().getMessage();
+        }
+
+        if (isSuccessful)
+            logger.info("task = " + task.getID() + (isSuccessful ? " rollback done." : (" failed, cause = " + rollbackfailedMessage)));
+        else
+            logger.info("task = " + task.getID() + (isSuccessful ? " rollback done." : (" failed, cause = " + rollbackfailedMessage)));
+        // TODO notify the submit caller;
+
+        logger.info(task.toString());
     }
 
 }

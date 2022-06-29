@@ -53,7 +53,7 @@ public class SonTask extends StatemachineTask<DefaultStatemachineState> {
     }
 
     @Override
-    protected Flow rollbackFromState(DefaultStatemachineState defaultStatemachineState) throws Exception {
+    protected Flow rollbackFromState(DefaultStatemachineState defaultStatemachineState) {
         return null;
     }
 

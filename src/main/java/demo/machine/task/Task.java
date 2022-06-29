@@ -22,8 +22,7 @@ public abstract class Task {
         RUNNABLE,
         RUNNING,
         SUSPENDED,
-        DONE,
-        FAILED
+        FINISHED
     }
 
     public Task(Task parent) {
@@ -84,8 +83,12 @@ public abstract class Task {
         return lifecycle == Lifecycle.RUNNING;
     }
 
+    public boolean isRollbacking() {
+        return lifecycle == Lifecycle.RUNNING && isRollBack();
+    }
+
     public boolean isDone() {
-        return lifecycle == Lifecycle.DONE;
+        return lifecycle == Lifecycle.FINISHED;
     }
 
     public boolean isSuspended() {
@@ -93,7 +96,11 @@ public abstract class Task {
     }
 
     public boolean isFailed() {
-        return lifecycle == Lifecycle.FAILED;
+        return failedException != null;
+    }
+
+    public boolean isRollbackFailed() {
+        return rollbackException != null;
     }
 
     public boolean isRollBack() {
@@ -101,8 +108,8 @@ public abstract class Task {
     }
 
     // TODO 这个表述不准确
-    public boolean isRollbackFinished() {
-        return rollback && lifecycle == Lifecycle.RUNNABLE;
+    public boolean isRollbackDONE() {
+        return rollback && lifecycle == Lifecycle.FINISHED && !isRollbackFailed();
     }
 
     public abstract boolean canRollback();
@@ -123,12 +130,28 @@ public abstract class Task {
         }
         for (Task son : subTasks) {
             if (son.isFailed()) {
-                setFailedException(new ExecutionException("son task" + son.getID() + " execute failed.", son.failedException));
+                setFailed(new ExecutionException("son task" + son.getID() + " execute failed.", son.failedException));
                 logger.warning("task: " + getID() + " resumed failed, cause son task: " + son.getID() + " executed failed with reason = " + son.getFailedException().getMessage());
                 return false;
             }
         }
-        logger.warning("task: " + getID() + " resumed successfully.");
+        logger.info("task: " + getID() + " resumed successfully.");
+        subTasks = new ArrayList<>();
+        return true;
+    }
+
+    public boolean rollbackResume() {
+        if (isSuspended()) {
+            lifecycle = Lifecycle.RUNNING;
+        }
+        for (Task son : subTasks) {
+            if (son.isRollbackFailed()) {
+                setRollbackException(new ExecutionException("son task" + son.getID() + " execute failed.", son.failedException));
+                logger.warning("task: " + getID() + " rollback resumed failed, cause son task: " + son.getID() + " rollback failed with reason = " + son.getFailedException().getMessage());
+                return false;
+            }
+        }
+        logger.info("task : " + getID() + " rollback resume successfully");
         subTasks = new ArrayList<>();
         return true;
     }
@@ -136,8 +159,13 @@ public abstract class Task {
     public void suspendAndSubmitChildren() {
         if (isRunning()) {
             lifecycle = Lifecycle.SUSPENDED;
-            sonCountToDone.set(subTasks.size());
+        } else if (isRollbacking()) {
+            lifecycle = Lifecycle.SUSPENDED;
         }
+        {
+            // TODO 不应该出现在这里。
+        }
+        sonCountToDone.set(subTasks.size());
 
         String subIDs = "[";
         for (Task task : subTasks) {
@@ -158,7 +186,7 @@ public abstract class Task {
      */
     public void complete() {
         if (lifecycle == Lifecycle.RUNNING) {
-            lifecycle = Lifecycle.DONE;
+            lifecycle = Lifecycle.FINISHED;
         }
 
         if (hasParent() && !isSuspended()) {
@@ -182,6 +210,7 @@ public abstract class Task {
     }
 
     public void setRollBack() {
+        lifecycle = Lifecycle.RUNNABLE;
         rollback = true;
     }
 
@@ -189,8 +218,9 @@ public abstract class Task {
         return failedException;
     }
 
-    public void setFailedException(Exception failedException) {
-        this.failedException = failedException;
+    public void setFailed(Exception e) {
+        failedException = e;
+        logger.warning("task : " + getID() + " failed, cause = " + e.getMessage());
     }
 
     public Exception getRollbackException() {

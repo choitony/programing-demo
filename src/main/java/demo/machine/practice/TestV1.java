@@ -82,7 +82,7 @@ public class TestV1 {
         }
 
         @Override
-        protected Flow rollbackFromState(DefaultStatemachineState state) throws Exception {
+        protected Flow rollbackFromState(DefaultStatemachineState state) {
             return null;
         }
 
